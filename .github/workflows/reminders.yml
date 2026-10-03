@@ -1,0 +1,39 @@
+name: Telegram reminders
+
+on:
+  schedule:
+    - cron: '0 9-23/2 * * *'
+      timezone: Europe/Kyiv
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: telegram-reminders
+  cancel-in-progress: false
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check sending window
+        id: window
+        shell: bash
+        run: |
+          hour=$(TZ=Europe/Kyiv date +%H)
+          minute=$(TZ=Europe/Kyiv date +%M)
+          # Skip runs delayed into the night. Allow the final series to end at 23:10.
+          if (( 10#$hour >= 9 && 10#$hour < 23 )) || (( 10#$hour == 23 && 10#$minute <= 1 )); then
+            echo "allowed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Outside sending window; skipping."
+          fi
+      - name: Send three reminders, five minutes apart
+        if: steps.window.outputs.allowed == 'true'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python3 bot.py
