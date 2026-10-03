@@ -9,9 +9,9 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 MESSAGES = (
-    "Я не вживаю алкоголь",
-    "Я не курю",
-    "Я дотримуюсь дефіциту калорій",
+    "🚫🍾 Я не вживаю алкоголь",
+    "🚭 Я не курю",
+    "⚖️ Я дотримуюсь дефіциту калорій",
 )
 INTERVAL_SECONDS = 5 * 60
 
