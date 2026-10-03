@@ -2,8 +2,8 @@ name: Telegram reminders
 
 on:
   schedule:
-    - cron: '20 9-23/2 * * *'
-      timezone: Europe/Kyiv
+    # Use a plain UTC trigger; select Kyiv sending hours below, including DST.
+    - cron: '20 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -19,17 +19,30 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - name: Check sending window
         id: window
         shell: bash
+        env:
+          TRIGGER_EVENT: ${{ github.event_name }}
         run: |
           hour=$(TZ=Europe/Kyiv date +%H)
           minute=$(TZ=Europe/Kyiv date +%M)
+          echo "Trigger: $TRIGGER_EVENT; Kyiv time: $(TZ=Europe/Kyiv date --iso-8601=seconds)" >> "$GITHUB_STEP_SUMMARY"
           # Skip runs delayed into the night. Final series is scheduled for 23:20-23:30.
           if (( 10#$hour >= 9 && 10#$hour < 23 )) || (( 10#$hour == 23 && 10#$minute <= 21 )); then
-            echo "allowed=true" >> "$GITHUB_OUTPUT"
+            # Manual runs may send during any permitted daytime hour.
+            if [[ "$TRIGGER_EVENT" == "workflow_dispatch" ]] || (( 10#$hour % 2 == 1 )); then
+              echo "allowed=true" >> "$GITHUB_OUTPUT"
+              echo "Sending three reminders." >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "Even Kyiv hour; next series is due in an odd hour." >> "$GITHUB_STEP_SUMMARY"
+            fi
           else
-            echo "Outside sending window; skipping."
+            echo "Outside sending window; skipping." >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Send three reminders, five minutes apart
         if: steps.window.outputs.allowed == 'true'
