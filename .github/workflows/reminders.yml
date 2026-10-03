@@ -2,7 +2,7 @@ name: Telegram reminders
 
 on:
   schedule:
-    - cron: '0 9-23/2 * * *'
+    - cron: '20 9-23/2 * * *'
       timezone: Europe/Kyiv
   workflow_dispatch:
 
@@ -25,8 +25,8 @@ jobs:
         run: |
           hour=$(TZ=Europe/Kyiv date +%H)
           minute=$(TZ=Europe/Kyiv date +%M)
-          # Skip runs delayed into the night. Allow the final series to end at 23:10.
-          if (( 10#$hour >= 9 && 10#$hour < 23 )) || (( 10#$hour == 23 && 10#$minute <= 1 )); then
+          # Skip runs delayed into the night. Final series is scheduled for 23:20-23:30.
+          if (( 10#$hour >= 9 && 10#$hour < 23 )) || (( 10#$hour == 23 && 10#$minute <= 21 )); then
             echo "allowed=true" >> "$GITHUB_OUTPUT"
           else
             echo "Outside sending window; skipping."
